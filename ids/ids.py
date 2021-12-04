@@ -28,5 +28,5 @@ def track_name(id):
 	return track_ids[id]
 
 
-def nationality(id):
+def nationality_name(id):
 	return nationalities_ids[id]

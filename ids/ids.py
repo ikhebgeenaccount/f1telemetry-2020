@@ -14,3 +14,19 @@ def load_ids():
 			for line in d_file:
 				id, name = line.split(',')
 				d[int(id)] = name.strip()
+
+
+def team_name(id):
+	return team_ids[id]
+
+
+def driver_name(id):
+	return driver_ids[id]
+
+
+def track_name(id):
+	return track_ids[id]
+
+
+def nationality(id):
+	return nationalities_ids[id]

@@ -1,3 +1,3 @@
-from .ids import load_ids, team_ids, driver_ids, track_ids, nationalities_ids
+from .ids import team_name, driver_name, track_name, nationality, load_ids
 
 load_ids()

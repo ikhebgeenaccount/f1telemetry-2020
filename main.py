@@ -48,5 +48,4 @@ def packet_listen():
 
 
 if __name__ == '__main__':
-	# packet_listen()
-	pass
+	packet_listen()

@@ -1,10 +1,13 @@
+import configparser
 import os
 import socket
 import packets
+import plotting
+
+import logging
 
 from f1_2020_telemetry.packets import unpack_udp_packet
-
-import plotting
+from os.path import abspath
 
 
 def packet_listen():
@@ -24,7 +27,7 @@ def packet_listen():
 
 		if curr_session_uid != packet.header.sessionUID:
 
-			packet_saver = packets.PacketSaver(packet.header.sessionUID)
+			packet_saver = packets.PacketSaver(packet.header.sessionUID, abspath(os.getcwd()))
 			plotting_thread = plotting.PlottingThread(packet.header.sessionUID)
 
 			plotting_thread.start()
@@ -35,8 +38,8 @@ def packet_listen():
 		# Save the packet
 		packet_saver.save(packet)
 
-		# TODO: start plotting thread
-
 
 if __name__ == '__main__':
 	packet_listen()
+
+

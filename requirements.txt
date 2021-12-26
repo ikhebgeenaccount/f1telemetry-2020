@@ -1,1 +1,5 @@
-matplotlib~=3.3.2
+# Generated using pipreqs
+# https://stackoverflow.com/questions/45475534/pycharm-not-exporting-the-correct-requirements-txt/45477466#45477466
+
+f1_2020_telemetry==0.2.1
+matplotlib==3.3.2

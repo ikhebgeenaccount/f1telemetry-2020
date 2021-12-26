@@ -1,7 +1,7 @@
 import configparser
 
 
-class PacketConfig():
+class PacketConfig:
 	"""
 	PacketConfig reads a .ini file that specifies which fields should be saved per packet type, or per nested data field.
 	"""

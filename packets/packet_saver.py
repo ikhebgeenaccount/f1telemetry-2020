@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 
@@ -58,6 +59,10 @@ class PacketSaver:
 		:param session_uid:
 		:param save_path: Path where session data will be saved. Preferably an absolute path.
 		"""
+		# Sets logging up and points it to save_path/logs/[sessionUID].log
+		logging.basicConfig(filename=os.path.join(save_path, 'logs', f'{session_uid}.log'), level=logging.DEBUG,
+							format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
 		# Dictionary to match packet ids to saving methods
 		self._PACKET_ID_MATCH = {
 			0: self.motion_packet,
@@ -87,10 +92,16 @@ class PacketSaver:
 			12: 'timetrial'
 		}
 
-		# Sets logging up and points it to save_path/logs/[sessionUID].log
-		# TODO: create log file?
-		logging.basicConfig(filename=os.path.join(save_path, 'logs', f'{session_uid}.log'), level=logging.DEBUG,
-							format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+		# Update sessions.csv with current datetime and sessionUID, create sessions.csv if not exists
+		sessions_file_path = os.path.join(save_path, 'data', 'sessions.csv')
+		if not os.path.exists(sessions_file_path):
+			with open(sessions_file_path, 'w') as sessions_file:
+				logging.info(f'Creating sessions.csv at {sessions_file_path}')
+				sessions_file.write('#datetime,sessionUID\n')
+
+		with open(sessions_file_path, 'a') as sessions_file:
+			logging.info(f'Addign sessionUID {session_uid} and current datetime to sessions.csv')
+			sessions_file.write(f'{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")},{session_uid}\n')
 
 		self._session_uid = session_uid
 
@@ -120,8 +131,6 @@ class PacketSaver:
 
 		# Loads config of what fields to save
 		self._packet_config = PacketConfig(os.path.join(save_path, 'cfg', 'packet_keys.ini'))
-
-		# TODO: create sessions.csv in /data to save date and other stuff per session uid?
 
 	def save(self, packet):
 		"""
@@ -200,7 +209,7 @@ class PacketSaver:
 			self._write_to_file(os.path.join('player', f'lap{self._lap_number}_telemetry.csv'), self._telemetry)
 			self._telemetry = ''
 
-			# self._lap_number = packet.lapData[self._player_driver_index].currentLapNum
+			self._lap_number = packet.lapData[self._player_driver_index].currentLapNum
 
 	def event_packet(self, packet):
 		logging.info(f'Processing event packet.')

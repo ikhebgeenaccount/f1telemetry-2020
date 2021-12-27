@@ -1,6 +1,8 @@
 import logging
 import os
 
+import numpy as np
+
 from packets.packet_config import PacketConfig
 
 
@@ -28,17 +30,18 @@ class PacketSaver:
 						laps.csv
 							(lap_number, s1_time, s2_time, s3_time, tyre, invalid, pitting)  TODO: pit status?
 						lap1_telemetry.csv
+							From CarTelemetry
 							(session_time, frame_identifier, speed, throttle, steer, brake, clutch, gear, engine_rpm, drs,
-							brakes_temps, tyre_surf_temps, tyre_inner_temps, engine_temp, tyres_pressures, surface_types)
-						lap1_status.csv
-							(session_time, frame_identifier, fuel_mix, fuel_amount, tyres_wear, tyre_compound, tyre_compound_visual,
+							brakes_temps, tyre_surf_temps, tyre_inner_temps, engine_temp, tyres_pressures, surface_types
+							From CarStatus
+							session_time, frame_identifier, fuel_mix, fuel_amount, tyres_wear, tyre_compound, tyre_compound_visual,
 							tyres_damage, tyre_age_laps, front_wing_left_dmg, front_wing_right_dmg, rear_wing_dmg, drs_fault,
 							engine_dmg, gear_box_dmg, ers_store, ers_deploy_mode, mguk_harvest_this_lap, mguh_harvest_this_lap,
-							ers_deployed_this_lap)
-						lap1_lap_data.csv
-							(session_time, frame_identifier, lap_distance)
-						lap1_motion.csv
-							(session_time, frame_identifier, m_worldPositionX, m_worldPositionY, m_worldPositionZ, m_gForceLateral,
+							ers_deployed_this_lap
+							From LapData
+							session_time, frame_identifier, lap_distance)
+							From Motion
+							session_time, frame_identifier, m_worldPositionX, m_worldPositionY, m_worldPositionZ, m_gForceLateral,
 							m_gForceLongitudinal, m_gForceVertical)
 							TODO: create plot of track and m_worldPosition coords with
 								https://medium.com/towards-formula-1-analysis/analyzing-formula-1-data-using-python-2021-abu-dhabi-gp-minisector-comparison-3d72aa39e5e8
@@ -118,6 +121,8 @@ class PacketSaver:
 		# Loads config of what fields to save
 		self._packet_config = PacketConfig(os.path.join(save_path, 'cfg', 'packet_keys.ini'))
 
+		# TODO: create sessions.csv in /data to save date and other stuff per session uid?
+
 	def save(self, packet):
 		"""
 		Saves the data from the packet.
@@ -147,7 +152,6 @@ class PacketSaver:
 			with open(path, 'a') as f:
 				f.write(data)
 		else:
-
 			# Create file if not exists
 			with open(path, 'w') as f:
 				f.write(data)
@@ -162,6 +166,7 @@ class PacketSaver:
 		# If sessionType has changed, create a new folder and update current session_type,
 		if packet.sessionType != self._session_type:
 			new_path = os.path.join(self._save_path, self.SESSION_TYPE_ID_MATCH[packet.sessionType], 'player')
+			# Creates [save_path]/[sessionType]/player, since player will always exist
 			os.makedirs(new_path, exist_ok=True)
 			self._session_type = packet.sessionType
 
@@ -195,7 +200,7 @@ class PacketSaver:
 			self._write_to_file(os.path.join('player', f'lap{self._lap_number}_telemetry.csv'), self._telemetry)
 			self._telemetry = ''
 
-			self._lap_number = packet.lapData[self._player_driver_index].currentLapNum
+			# self._lap_number = packet.lapData[self._player_driver_index].currentLapNum
 
 	def event_packet(self, packet):
 		logging.info(f'Processing event packet.')
@@ -276,7 +281,23 @@ class PacketSaver:
 		"""
 		save_string = ''
 		for f in fields:
-			save_string += str(getattr(structure, f)) + ','
+			# If it's an array, decode it into an array
+			if 'Array' in type(getattr(structure, f)).__name__:
+				# Arrays are saved as follows:
+				# Let array to be saved be [0.1, 2., 3., 0.6]
+				# Then the string corresponding to the value of the field that is being saved will be
+				# 0.1 2. 3. 0.6
+				# This can be read and decoded back to arrays using pandas DataFrames and numpy as follows
+				# data = pandas.read_csv('data.csv')
+				# data['a1'] = data['a1'].apply(np.fromstring, dtype=float, sep=' ')
+				# where 'a1' is the field that has arrays as data values
+				save_string += str(np.ctypeslib.as_array(getattr(structure, f)))[1:-1]
+				# [1:-1] is to remove the brackets []
+			else:  # Otherwise, it's either a byte string or some other type, like int, float, ...
+				try:  # Attempts to decode a byte string
+					save_string += str(getattr(structure, f).decode('utf-8')) + ','
+				except (UnicodeDecodeError, AttributeError):  # If it's not a string, just get the value
+					save_string += str(getattr(structure, f)) + ','
 
 		# Return save_string save the last comma
 		if newline:

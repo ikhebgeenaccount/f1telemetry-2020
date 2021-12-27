@@ -97,7 +97,7 @@ class PacketSaver:
 		if not os.path.exists(sessions_file_path):
 			with open(sessions_file_path, 'w') as sessions_file:
 				logging.info(f'Creating sessions.csv at {sessions_file_path}')
-				sessions_file.write('#datetime,sessionUID\n')
+				sessions_file.write('datetime,sessionUID\n')
 
 		with open(sessions_file_path, 'a') as sessions_file:
 			logging.info(f'Addign sessionUID {session_uid} and current datetime to sessions.csv')
@@ -190,7 +190,7 @@ class PacketSaver:
 			# Create string with all data that needs to be saved based on self._packet_config
 			fields_to_save = self._packet_config.get_fields('session_packet')
 			# First line is field names preceded by a #
-			save_string = f'#{self._packet_config.get_fields("session_packet", list_format=False)}\n'
+			save_string = f'{self._packet_config.get_fields("session_packet", list_format=False)}\n'
 			save_string += self._retrieve_attr(packet, fields_to_save)
 
 			self._write_to_file('session.csv', save_string[:-1])
@@ -229,7 +229,7 @@ class PacketSaver:
 
 		if not self._participants_data_saved:
 			fields_to_save = self._packet_config.get_fields('participant_data')
-			save_string = f'#{self._packet_config.get_fields("participant_data", list_format=False)}\n'
+			save_string = f'{self._packet_config.get_fields("participant_data", list_format=False)}\n'
 
 			for pd in packet.participants:
 				save_string += self._retrieve_attr(pd, fields_to_save)
@@ -247,7 +247,7 @@ class PacketSaver:
 		logging.info(f'Processing car telemetry packet.')
 		# If telemetry is empty, create the first line of the save file with the field names
 		if self._telemetry == '':
-			self._telemetry = '#sessionTime,frameIdentifier,' + self._packet_config.get_fields('car_telemetry_data', list_format=False) + '\n'
+			self._telemetry = 'sessionTime,frameIdentifier,' + self._packet_config.get_fields('car_telemetry_data', list_format=False) + '\n'
 
 		fields_to_save = self._packet_config.get_fields('car_telemetry_data')
 		save_string = f'{packet.header.sessionTime},{packet.header.frameIdentifier},'
@@ -273,7 +273,7 @@ class PacketSaver:
 			save_string += self._retrieve_attr(d, fields_to_save)
 
 		field_names = 'driverId,name,raceNumber,' + self._packet_config.get_fields('final_classification_data', False)
-		save_string = '#' + field_names + '\n' + save_string
+		save_string = field_names + '\n' + save_string
 
 		self._write_to_file('final_classification.csv', save_string)
 

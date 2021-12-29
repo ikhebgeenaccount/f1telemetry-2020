@@ -143,7 +143,7 @@ class PacketSaver:
 		logging.info(f'Received packet with packetId {packet.header.packetId} at sessionTime {packet.header.sessionTime}'
 					 f' and frameIdentifier {packet.header.frameIdentifier}.')
 
-	def _write_to_file(self, file, data):
+	def _write_to_file(self, file, data, first_line_if_not_exists=None):
 		"""
 		Saves the data to the file. File path must be relative path starting from sessionUID/sessionType.
 		E.g., if file = 'player/lap4_telemetry.csv', it will be stored in '[sessionUID]/[sessionType]/player/lap4_telemetry.csv'.
@@ -151,6 +151,8 @@ class PacketSaver:
 		the file is created, after which the data is written to it.
 		:param file: Relative path
 		:param data: String to store in file
+		:param first_line_if_not_exists: The first line of the file that will be written only if the file does not exist
+		prior to calling this method.
 		:return:
 		"""
 		logging.info(f'Saving data to file {file}, data = {data[0:10]} ... {data[-10:-1]}')
@@ -163,6 +165,8 @@ class PacketSaver:
 		else:
 			# Create file if not exists
 			with open(path, 'w') as f:
+				if first_line_if_not_exists is not None:
+					f.write(first_line_if_not_exists)
 				f.write(data)
 
 	def motion_packet(self, packet):
@@ -183,7 +187,13 @@ class PacketSaver:
 			self._session_info_saved = False
 			self._participants_data_saved = False
 
-		# TODO: save current track circumstances
+		# Save session evolution data
+		fields_to_save = self._packet_config.get_fields('session_evolution_packet')
+		save_string = f'{packet.header.sessionTime},{packet.header.frameIdentifier},{self._retrieve_attr(packet, fields_to_save)}'
+
+		self._write_to_file('session_evolution.csv', save_string,
+							first_line_if_not_exists=f'sessionTime,frameIdentifier,'
+													 f'{self._packet_config.get_fields("session_evolution_packet", list_format=False)}\n')
 
 		# Save one time session info
 		if not self._session_info_saved:
@@ -209,6 +219,7 @@ class PacketSaver:
 			self._write_to_file(os.path.join('player', f'lap{self._lap_number}_telemetry.csv'), self._telemetry)
 			self._telemetry = ''
 
+			# Update current lap number
 			self._lap_number = packet.lapData[self._player_driver_index].currentLapNum
 
 	def event_packet(self, packet):

@@ -342,7 +342,7 @@ class PacketSaver:
 				# data = pandas.read_csv('data.csv')
 				# data['a1'] = data['a1'].apply(np.fromstring, dtype=float, sep=' ')
 				# where 'a1' is the field that has arrays as data values
-				save_string += str(np.ctypeslib.as_array(getattr(structure, f)))[1:-1]
+				save_string += str(np.ctypeslib.as_array(getattr(structure, f)))[1:-1] + ','
 				# [1:-1] is to remove the brackets []
 			else:  # Otherwise, it's either a byte string or some other type, like int, float, ...
 				try:  # Attempts to decode a byte string

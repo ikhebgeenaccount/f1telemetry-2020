@@ -44,8 +44,6 @@ class PacketSaver:
 							From Motion
 							session_time, frame_identifier, m_worldPositionX, m_worldPositionY, m_worldPositionZ, m_gForceLateral,
 							m_gForceLongitudinal, m_gForceVertical)
-							TODO: create plot of track and m_worldPosition coords with
-								https://medium.com/towards-formula-1-analysis/analyzing-formula-1-data-using-python-2021-abu-dhabi-gp-minisector-comparison-3d72aa39e5e8
 						...
 						lapN.csv
 					|--- driver_id
@@ -100,7 +98,7 @@ class PacketSaver:
 				sessions_file.write('datetime,sessionUID\n')
 
 		with open(sessions_file_path, 'a') as sessions_file:
-			logging.info(f'Addign sessionUID {session_uid} and current datetime to sessions.csv')
+			logging.info(f'Adding sessionUID {session_uid} and current datetime to sessions.csv')
 			sessions_file.write(f'{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")},{session_uid}\n')
 
 		self._session_uid = session_uid
@@ -171,13 +169,22 @@ class PacketSaver:
 
 	def motion_packet(self, packet):
 		logging.info(f'Processing motion packet.')
-		# TODO
-		pass
+		# First line of file has all field/column names
+		first_line = 'sessionTime,frameIdentifier,' + self._packet_config.get_fields('car_motion_data', list_format=False) + '\n'
+
+		fields_to_save = self._packet_config.get_fields('car_motion_data')
+		save_string = f'{packet.header.sessionTime},{packet.header.frameIdentifier},'
+
+		save_string += self._retrieve_attr(packet.carMotionData[self._player_driver_index], fields_to_save)
+
+		self._write_to_file(os.path.join('player', f'lap{self._lap_number}_motion.csv'), save_string,
+							first_line_if_not_exists=first_line)
 
 	def session_packet(self, packet):
 		logging.info(f'Processing session packet.')
 		# If sessionType has changed, create a new folder and update current session_type,
 		if packet.sessionType != self._session_type:
+			logging.info(f'Session type changed from {self._session_type} to {packet.sessionType}.')
 			new_path = os.path.join(self._save_path, self.SESSION_TYPE_ID_MATCH[packet.sessionType], 'player')
 			# Creates [save_path]/[sessionType]/player, since player will always exist
 			os.makedirs(new_path, exist_ok=True)
@@ -210,15 +217,18 @@ class PacketSaver:
 
 	def lap_data_packet(self, packet):
 		logging.info(f'Processing lap data packet.')
-		# TODO: lap date indicates current lap number and pit status
+		# First line of file has all field/column names
+		first_line = 'sessionTime,frameIdentifier,' + self._packet_config.get_fields('lap_data', list_format=False) + '\n'
 
-		# TODO: change in lap number means save telemetry (lapX.csv) and save times to laps.csv
-		#  or when retiring save as well (based on m_resultStatus)
-		# Change in lap number indicates new lap has been started and telemetry from previous lap can be written to disk
+		fields_to_save = self._packet_config.get_fields('lap_data')
+		save_string = f'{packet.header.sessionTime},{packet.header.frameIdentifier},'
+
+		save_string += self._retrieve_attr(packet.lapData[self._player_driver_index], fields_to_save)
+
+		self._write_to_file(os.path.join('player', f'lap{self._lap_number}_data.csv'), save_string,
+							first_line_if_not_exists=first_line)
+
 		if packet.lapData[self._player_driver_index].currentLapNum != self._lap_number:
-			self._write_to_file(os.path.join('player', f'lap{self._lap_number}_telemetry.csv'), self._telemetry)
-			self._telemetry = ''
-
 			# Update current lap number
 			self._lap_number = packet.lapData[self._player_driver_index].currentLapNum
 
@@ -256,23 +266,29 @@ class PacketSaver:
 
 	def car_telemetry_packet(self, packet):
 		logging.info(f'Processing car telemetry packet.')
-		# If telemetry is empty, create the first line of the save file with the field names
-		if self._telemetry == '':
-			self._telemetry = 'sessionTime,frameIdentifier,' + self._packet_config.get_fields('car_telemetry_data', list_format=False) + '\n'
+		# First line of file has all field/column names
+		first_line = 'sessionTime,frameIdentifier,' + self._packet_config.get_fields('car_telemetry_data', list_format=False) + '\n'
 
 		fields_to_save = self._packet_config.get_fields('car_telemetry_data')
 		save_string = f'{packet.header.sessionTime},{packet.header.frameIdentifier},'
 
 		save_string += self._retrieve_attr(packet.carTelemetryData[self._player_driver_index], fields_to_save)
 
-		self._telemetry += save_string[:-1]
+		self._write_to_file(os.path.join('player', f'lap{self._lap_number}_telemetry.csv'), save_string,
+							first_line_if_not_exists=first_line)
 
 	def car_status_packet(self, packet):
 		logging.info(f'Processing car status packet.')
-		# TODO: how to combine telemetry and status and write them at once?  <-- but now this needs solving
-		#  need to check if status and telemetry have different sessionTime or not
-		#  could be packets are created at same time ingame just sent at different times?  <-- THIS IS THE CASE
-		pass
+		# First line of file has all field/column names
+		first_line = 'sessionTime,frameIdentifier,' + self._packet_config.get_fields('car_status_data', list_format=False) + '\n'
+
+		fields_to_save = self._packet_config.get_fields('car_status_data')
+		save_string = f'{packet.header.sessionTime},{packet.header.frameIdentifier},'
+
+		save_string += self._retrieve_attr(packet.carStatusData[self._player_driver_index], fields_to_save)
+
+		self._write_to_file(os.path.join('player', f'lap{self._lap_number}_status.csv'), save_string,
+							first_line_if_not_exists=first_line)
 
 	def final_classification_packet(self, packet):
 		logging.info(f'Processing final classification packet.')

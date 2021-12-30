@@ -1,18 +1,22 @@
+import os
+
+import pandas as pd
+
+from .session_data import SessionData
 
 
-def most_recent_session():
+def most_recent_session(data_path):
 	"""
-	Returns the sessionUID of the most recent session.
-	:return:
+	:return:The sessionUID of the most recent session.
 	"""
-	# TODO
-	pass
+	return all_sessions(data_path)['sessionUID'].iloc[-1]
 
 
-def all_sessions():
+def all_sessions(data_path):
 	"""
-	Returns a list of datetimes and sessionsUIDs. Not guaranteed to be sorted in any way.
-	:return:
+	Returns a pandas.DataFrame object of datetimes and sessionsUIDs, sorted by date ascending.
+	:return: pandas.DataFrame object
 	"""
-	# TODO
-	pass
+	session_list = pd.read_csv(os.path.join(data_path, 'sessions.csv'))
+
+	return session_list

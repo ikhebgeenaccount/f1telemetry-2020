@@ -232,6 +232,8 @@ class PacketSaver:
 			# Update current lap number
 			self._lap_number = packet.lapData[self._player_driver_index].currentLapNum
 
+			# TODO: save last lap data to laps.csv
+
 	def event_packet(self, packet):
 		logging.info(f'Processing event packet.')
 		# TODO: save event to events.csv, how to handle different types of events in packet_keys.ini?

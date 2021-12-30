@@ -29,10 +29,10 @@ class SessionData:
 		lap_data = pd.read_csv(os.path.join(self.data_path, str(self.session_uid), str(session_type), 'player', f'lap{lap_number}_data.csv'))
 
 		# Merge the DataFrames on sessionTime
-		t_data = telemetry.merge(motion, how='inner', on='sessionTime')
-		tt_data = t_data.merge(status, how='inner', on='sessionTime')
+		t_data = telemetry.merge(motion, how='inner', on=['sessionTime', 'frameIdentifier'])
+		tt_data = t_data.merge(status, how='inner', on=['sessionTime', 'frameIdentifier'])
 		# Final result should be sorted
-		self.telemetry_data = tt_data.merge(lap_data, how='outer', on='sessionTime', sort=True)
+		self.telemetry_data = tt_data.merge(lap_data, how='outer', on=['sessionTime', 'frameIdentifier'], sort=True)
 
 		# TODO: columns containing strings should be converted to np arrays
 		# # Convert the string of values to array of floats, per column

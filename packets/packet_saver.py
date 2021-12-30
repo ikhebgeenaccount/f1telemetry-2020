@@ -9,7 +9,7 @@ from packets.packet_config import PacketConfig
 
 class PacketSaver:
 
-	def __init__(self, session_uid, save_path):
+	def __init__(self, session_uid, data_root):
 		"""
 		PacketSaver handles the saving of packets. The following folder structure is created by PacketSaver:
 
@@ -55,10 +55,10 @@ class PacketSaver:
 						...
 						lapN.csv
 		:param session_uid:
-		:param save_path: Path where session data will be saved. Preferably an absolute path.
+		:param data_root: Path where session data will be saved. Preferably an absolute path.
 		"""
 		# Sets logging up and points it to save_path/logs/[sessionUID].log
-		logging.basicConfig(filename=os.path.join(save_path, 'logs', f'{session_uid}.log'), level=logging.DEBUG,
+		logging.basicConfig(filename=os.path.join(data_root, 'logs', f'{session_uid}.log'), level=logging.DEBUG,
 							format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 		# Dictionary to match packet ids to saving methods
@@ -90,30 +90,17 @@ class PacketSaver:
 			12: 'timetrial'
 		}
 
-		# Update sessions.csv with current datetime and sessionUID, create sessions.csv if not exists
-		sessions_file_path = os.path.join(save_path, 'data', 'sessions.csv')
-		if not os.path.exists(sessions_file_path):
-			with open(sessions_file_path, 'w') as sessions_file:
-				logging.info(f'Creating sessions.csv at {sessions_file_path}')
-				sessions_file.write('datetime,sessionUID\n')
+		# Save path points to the sessionUID folder, not a session type, this is handled in _write_to_file()
+		self._data_root = data_root
+		self._save_path = os.path.join(data_root, 'data', str(session_uid))
 
-		with open(sessions_file_path, 'a') as sessions_file:
-			logging.info(f'Adding sessionUID {session_uid} and current datetime to sessions.csv')
-			sessions_file.write(f'{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")},{session_uid}\n')
+		self._session_registered = False
 
 		self._session_uid = session_uid
 
 		# Indicates whether the session info. like track, type, laps, etc, has been saved yet or not
 		self._session_info_saved = False
 		self._participants_data_saved = False
-
-		# Save path points to the sessionUID folder, not a session type, this is handled in _write_to_file()
-		self._save_path = os.path.join(save_path, 'data', str(session_uid))
-		# Create the sessionUID folder
-		try:
-			os.mkdir(self._save_path)
-		except FileExistsError:
-			logging.warning(f'{self._save_path} already exists.')
 
 		# Save the lap number of current lap
 		self._lap_number = 0
@@ -128,7 +115,7 @@ class PacketSaver:
 		self._telemetry = ''  # Saved at the start of every new lap, or when retiring
 
 		# Loads config of what fields to save
-		self._packet_config = PacketConfig(os.path.join(save_path, 'cfg', 'packet_keys.ini'))
+		self._packet_config = PacketConfig(os.path.join(data_root, 'cfg', 'packet_keys.ini'))
 
 	def save(self, packet):
 		"""
@@ -140,6 +127,30 @@ class PacketSaver:
 		self._PACKET_ID_MATCH[packet.header.packetId](packet)
 		logging.info(f'Received packet with packetId {packet.header.packetId} at sessionTime {packet.header.sessionTime}'
 					 f' and frameIdentifier {packet.header.frameIdentifier}.')
+
+	def _register_session(self):
+		if self._session_registered:
+			return
+
+		# Update sessions.csv with current datetime and sessionUID, create sessions.csv if not exists
+		sessions_file_path = os.path.join(self._data_root, 'data', 'sessions.csv')
+		if not os.path.exists(sessions_file_path):
+			with open(sessions_file_path, 'w') as sessions_file:
+				logging.info(f'Creating sessions.csv at {sessions_file_path}')
+				logging.info(f'Adding sessionUID {self._session_uid} and current datetime to sessions.csv')
+				sessions_file.write('datetime,sessionUID\n')
+		else:
+			with open(sessions_file_path, 'a') as sessions_file:
+				logging.info(f'Adding sessionUID {self._session_uid} and current datetime to sessions.csv')
+				sessions_file.write(f'{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")},{self._session_uid}\n')
+
+		# Create the sessionUID folder
+		try:
+			os.mkdir(self._save_path)
+		except FileExistsError:
+			logging.warning(f'{self._save_path} already exists.')
+
+		self._session_registered = True
 
 	def _write_to_file(self, file, data, first_line_if_not_exists=None):
 		"""
@@ -153,6 +164,8 @@ class PacketSaver:
 		prior to calling this method.
 		:return:
 		"""
+		self._register_session()
+
 		logging.info(f'Saving data to file {file}, data = {data[0:10]} ... {data[-10:-1]}')
 		path = os.path.join(self._save_path, self.SESSION_TYPE_ID_MATCH[self._session_type], file)
 

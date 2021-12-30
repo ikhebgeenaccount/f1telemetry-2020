@@ -31,7 +31,6 @@ def packet_listen(data_path):
 
 		if curr_session_uid != packet.header.sessionUID:
 			print(f'Creating new session stuff with sessionUID {packet.header.sessionUID}\n and packet {packet}')
-			# TODO: check what happens with the empty session folder when closing session
 			packet_saver = packets.PacketSaver(packet.header.sessionUID, data_path)
 			plotting_thread = plotting.PlottingThread(packet.header.sessionUID)
 

@@ -19,7 +19,7 @@ class SessionData:
 		Loads the telemetry data for specified lap number and session type.
 		Return object is a DataFrame containing all telemetry data.
 		:param lap_number: Lap number for which to load telemetry data
-		:param str(session_type): Session type containing that lap number
+		:param session_type: Session type containing that lap number
 		:return: pandas.DataFrame object
 		"""
 		# Read all four types of telemetry data
@@ -43,4 +43,13 @@ class SessionData:
 		# print(data)
 
 		return self.telemetry_data
+
+	def session_info(self, session_type):
+		pass
+
+	def session_types(self):
+		"""
+		:return: List of all session types for this sessionUID
+		"""
+		pass
 

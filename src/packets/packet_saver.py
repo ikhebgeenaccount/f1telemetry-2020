@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 
-from packets.packet_config import PacketConfig
+from src.packets.packet_config import PacketConfig
 
 
 class PacketSaver:
@@ -57,9 +57,6 @@ class PacketSaver:
 		:param session_uid:
 		:param data_root: Path where session data will be saved. Preferably an absolute path.
 		"""
-		# Sets logging up and points it to save_path/logs/[sessionUID].log
-		logging.basicConfig(filename=os.path.join(data_root, 'logs', f'{session_uid}.log'), level=logging.DEBUG,
-							format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 		# Dictionary to match packet ids to saving methods
 		self._PACKET_ID_MATCH = {

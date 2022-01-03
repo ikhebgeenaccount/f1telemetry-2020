@@ -1,9 +1,11 @@
 import abc
 
+from PyQt5.QtWidgets import QTabWidget
 from f1_2020_telemetry.packets import PackedLittleEndianStructure
 
 
-class Tab(metaclass=abc.ABCMeta):
+# TODO: figure out metaclass stuff
+class Tab(type(QTabWidget)):
 	"""
 	Defines the interface for a Tab that can be added to
 	"""

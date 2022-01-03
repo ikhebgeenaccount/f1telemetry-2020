@@ -1,19 +1,14 @@
-import logging
 import os
-import socket
 import sys
 from os.path import abspath
-from threading import Thread
 
 import numpy as np
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import pyqtSignal, QObject
-from f1_2020_telemetry.packets import unpack_udp_packet, PackedLittleEndianStructure
 from matplotlib import pyplot as plt, cm
 from matplotlib.cm import ScalarMappable
 from matplotlib.collections import LineCollection
 
-from src import sessions, plotting, packets
+from src import sessions
 from src.ui.app_window import AppWindow
 
 

@@ -4,14 +4,14 @@ import os.path
 import socket
 
 import matplotlib
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal, QThread
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QTabWidget
 from f1_2020_telemetry.packets import PackedLittleEndianStructure, unpack_udp_packet
 
 from src import packets
 
-# from src.ui.tabs import *
+from src.ui.tabs import *
 
 matplotlib.use('Qt5Agg')
 
@@ -53,7 +53,7 @@ class AppWindow(QtWidgets.QMainWindow):
 		self.setCentralWidget(self.tabs_widget)
 
 		# Show this window
-		self.show()
+		self.showMaximized()
 
 	@pyqtSlot(PackedLittleEndianStructure)
 	def update_data(self, packet):
@@ -64,10 +64,12 @@ class AppWindow(QtWidgets.QMainWindow):
 		"""
 		self.tabs_widget.update_data(packet)
 
-		print('update')
+	def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+		# Stop listening for packages when the window is closed by the user
+		self.packet_listener.quit()
 
 
-class TabsWidget(QWidget):
+class TabsWidget(QTabWidget):
 
 	def __init__(self, data_root):
 		super().__init__()
@@ -81,16 +83,27 @@ class TabsWidget(QWidget):
 		self.session_type = -1
 
 	def update_data(self, packet):
-		# If it's a sessino packet, set the session type of the TabsWidget
+		# If it's a session packet, set the session type of the TabsWidget
 		if packet.header.packetId == 1:
 			if packet.sessionType != self.session_type:
 				self.session_type = packet.sessionType
 
-				# Update tabs according to UI config
-				tab_classes = self.ui_config['tabs'][str(self.session_type)].split(',')
+				# TODO: use config
+				# # Update tabs according to UI config
+				# tab_classes = self.ui_config['tabs'][str(self.session_type)].split(',')
+				#
+				# for t in tab_classes:  # TODO: maybe need to do f'src.ui.tabs.{t}' ?
+				# 	print(eval(t))
 
-				for t in tab_classes:  # TODO: maybe need to do f'tabs.{t}' ?
-					print(eval(t))
+				t = TelemetryTab()
+
+				self.addTab(t, t.get_title())
+
+				print('tab added')
+
+		# Pass the new packet to each tab
+		for i in range(0, self.count()):
+			self.widget(i).update_data(packet)
 
 
 class PacketListener(QObject):
@@ -123,10 +136,14 @@ class PacketListener(QObject):
 									format='%(asctime)s %(levelname)-8s %(module)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 				packet_saver = packets.PacketSaver(packet.header.sessionUID, self.data_root)
 
-				self.received.emit(packet)
-
 			# Save this sessionUID to be able to check if new one has started
 			curr_session_uid = packet.header.sessionUID
 
 			# Save the packet
 			packet_saver.save(packet)
+			# Emit the packet to GUI
+			self.received.emit(packet)
+
+	@pyqtSlot()
+	def quit(self):
+		self.quit_flag = True

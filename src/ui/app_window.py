@@ -5,7 +5,7 @@ import socket
 
 import matplotlib
 from PyQt5 import QtWidgets, QtGui
-from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal, QThread
+from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal, QThread, QTimer
 from PyQt5.QtWidgets import QWidget, QTabWidget
 from f1_2020_telemetry.packets import PackedLittleEndianStructure, unpack_udp_packet
 
@@ -64,10 +64,6 @@ class AppWindow(QtWidgets.QMainWindow):
 		"""
 		self.tabs_widget.update_data(packet)
 
-	def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
-		# Stop listening for packages when the window is closed by the user
-		self.packet_listener.quit()
-
 
 class TabsWidget(QTabWidget):
 
@@ -82,18 +78,30 @@ class TabsWidget(QTabWidget):
 
 		self.session_type = -1
 
+		# Timer for refreshing of active tab
+		self.timer = QTimer()
+		self.timer.setInterval(int(self.ui_config['general']['refresh_rate']))
+		self.timer.timeout.connect(self.redraw_active_tab)
+		self.timer.start()
+
+		# Called when the currently displayed tab changes
+		self.currentChanged.connect(self.tab_changed)
+
 	def update_data(self, packet):
+		# TODO: check for event session ended for post screen
+
 		# If it's a session packet, set the session type of the TabsWidget
 		if packet.header.packetId == 1:
 			if packet.sessionType != self.session_type:
 				self.session_type = packet.sessionType
 
+				# TODO: remove tabs
 				# TODO: use config
 				# # Update tabs according to UI config
-				# tab_classes = self.ui_config['tabs'][str(self.session_type)].split(',')
+				# tab_classes_names = self.ui_config[str(self.session_type]['tabs'].split(',')
 				#
-				# for t in tab_classes:  # TODO: maybe need to do f'src.ui.tabs.{t}' ?
-				# 	print(eval(t))
+				# for t in tab_classes_names:
+				# 	print(eval(t))  # TODO: maybe need to do f'src.ui.tabs.{t}' ?
 
 				t = TelemetryTab()
 
@@ -104,6 +112,15 @@ class TabsWidget(QTabWidget):
 		# Pass the new packet to each tab
 		for i in range(0, self.count()):
 			self.widget(i).update_data(packet)
+
+	@pyqtSlot(int)
+	def tab_changed(self, new_index):
+		self.widget(new_index).redraw()
+
+	@pyqtSlot()
+	def redraw_active_tab(self):
+		if self.count() > 0:
+			self.currentWidget().redraw()
 
 
 class PacketListener(QObject):

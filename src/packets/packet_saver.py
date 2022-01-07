@@ -257,6 +257,8 @@ class PacketSaver:
 		"""
 		logging.info(f'Processing participants packet.')
 		if packet.numActiveCars != len(self._drivers):
+			# TODO: participants is always filled with 22 drivers, need to check valid entries
+			#  len(self._drivers) is always 1 as packet.participants is an object (I think)
 			logging.warning(f'Number of active drivers changed from {len(self._drivers)} to {packet.numActiveCars}.')
 			self._drivers = packet.participants
 
